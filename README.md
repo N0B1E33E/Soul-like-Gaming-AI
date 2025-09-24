@@ -6,4 +6,6 @@ We haven't settle down which game specifically to let the AI play and what archi
 Fingers-crossed to pray it will work XD.
 
 XD Obviously it's not working XD.
-1. Cannot correctly determine terminate state, cannot correctly read boss health, thus no efficient learning conducted >_<
+1. Cannot correctly determine terminate state
+2. annot correctly read boss health
+3. thus no efficient learning conducted >_<
