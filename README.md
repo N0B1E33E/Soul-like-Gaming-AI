@@ -7,5 +7,5 @@ Fingers-crossed to pray it will work XD.
 
 XD Obviously it's not working XD.
 1. Cannot correctly determine terminate state
-2. annot correctly read boss health
+2. Cannot correctly read boss health
 3. thus no efficient learning conducted >_<
