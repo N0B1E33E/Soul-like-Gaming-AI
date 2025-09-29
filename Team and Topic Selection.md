@@ -1,4 +1,4 @@
-# Team Formation and Topic Selection
+# Team and Topic Selection
 
 ## Topic: Soul-like Gaming AI
 
