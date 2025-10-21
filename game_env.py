@@ -17,7 +17,7 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # ================== Screen & Regions (2560x1440 fullscreen) ==================
-CAPTURE_REGION = {"top": 0, "left": 0, "width": 2560, "height": 1440}
+CAPTURE_REGION = {"top": 0, "left": 0, "width": 2560, "height": 1600}
 
 # 玩家血量 ROI（你已调好）
 _PLAYER_PIPS_FRACTION = dict(top=0.062, left=0.130, width=0.227, height=0.077)
@@ -47,7 +47,7 @@ _OCR_DEFAULT = {
         "top_offset_px": -1, "bottom_offset_px": 24
     }
 }
-_OCR_CFG_PATH = "ocr_band.json"
+_OCR_CFG_PATH = "ocr_band2.json"
 
 def load_ocr_cfg(path: str = _OCR_CFG_PATH) -> dict:
     cfg = json.loads(json.dumps(_OCR_DEFAULT))  # deep copy

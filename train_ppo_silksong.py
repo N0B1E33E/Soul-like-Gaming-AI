@@ -227,4 +227,4 @@ def train(total_updates=500, T=256, device=None):
 
 
 if __name__ == "__main__":
-    train(total_updates=500, T=256)
+    train(total_updates=500, T=128)

@@ -1,0 +1,15 @@
+{
+  "mode": "peak",
+  "ratio": {
+    "x_left": 0.43500000000000005,
+    "x_right": 0.5449999999999999,
+    "y_top": 0.7,
+    "y_bottom": 1.03
+  },
+  "peak": {
+    "x_center": 0.5,
+    "half_width": 0.08,
+    "top_offset_px": -2,
+    "bottom_offset_px": 30
+  }
+}

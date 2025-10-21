@@ -24,15 +24,15 @@ try:
 except Exception as e:
     print("[Warn] 未能从 game_env 导入 CAPTURE_REGION/BOSS_HP_REGION：", e)
     # 兜底（2560x1440 全屏 & 常用血条 ROI）
-    CAPTURE_REGION = {"top": 0, "left": 0, "width": 2560, "height": 1440}
+    CAPTURE_REGION = {"top": 0, "left": 0, "width": 2560, "height": 1600}
     BOSS_HP_REGION = {
-        "top": int(0.89 * 1440),
+        "top": int(0.89 * 1600),
         "left": int(0.263 * 2560),
         "width": int(0.477 * 2560),
-        "height": int(0.030 * 1440),
+        "height": int(0.030 * 1600),
     }
 
-CFG_PATH = "ocr_band.json"
+CFG_PATH = "ocr_band2.json"
 OUT_DIR = "ocr_debug"
 
 # ====== 默认参数（可改成你的习惯起点）======
