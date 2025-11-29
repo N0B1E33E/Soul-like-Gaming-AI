@@ -1,7 +1,7 @@
 # Silksong RL Training
 
 ## Game Settings
-- Resolution: 1280 x 720
+- Resolution: 1280 x 720 @60.02HZ
 - Window mode (disable fullscreen)
 - Window position: Top-left corner
 
