@@ -26,3 +26,24 @@ Modify the ShowDamage-HealthBar mod, changed the boss HP threshold from 1000 to 
 - `boss_hp_detector.py`
 - `player_hp_detector.py`
 - PNGs about HP detection
+
+## Train
+```bash
+python train.py
+```
+**Training steps**
+1. Pre-exploration: 50 Episodes
+2. Formal training: 100 Updates
+3. Automatic saving of model and logs
+4. Press **Ctrl+C** to stop if need
+
+**Current training Parameters**
+```
+Observation size: 128×128
+Frame Stack: 4
+Number of actions: 10
+Learning rate: 5e-4
+Entropy: 0.1
+Hit reward: 2.0
+Injury penalty: 0.5
+```
