@@ -25,7 +25,10 @@ Modify the ShowDamage-HealthBar mod, changed the boss HP threshold from 1000 to 
 - `calibrate_player_hp.py`
 - `boss_hp_detector.py`
 - `player_hp_detector.py`
+- `silksing_env.py`
+- `train.py`
 - PNGs about HP detection
+- JSON file (latest episodes data)
 
 ## Train
 ```bash
