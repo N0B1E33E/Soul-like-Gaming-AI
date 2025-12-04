@@ -3,8 +3,8 @@ import numpy as np
 from mss import mss
 import time
 
-# Capture screenshot after countdown
-print("Capture screenshot after 3sec....")
+# Screenshot
+print("Screenshot after 3 sec...")
 for i in range(3, 0, -1):
     print(f"{i}...")
     time.sleep(1)
@@ -14,16 +14,16 @@ with mss() as sct:
     screenshot = np.array(sct.grab(monitor))
     screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2BGR)
 
-print("Screenshot captured")
+print("Screenshot Done")
 cv2.imwrite('screenshot.png', screenshot)
 
-# Select ROI
-print("\nSelect Boss HP digits, press SPACE to confirm")
+# Select region
+print("\nSelect the Boss HP number and press SPACE to confirm")
 x, y, w, h = cv2.selectROI("Boss HP", screenshot, True, False)
 cv2.destroyAllWindows()
 
 if w == 0 or h == 0:
-    print("No selection made, exiting")
+    print("No selection made, exit")
     exit()
 
 x1, y1, x2, y2 = x, y, x+w, y+h
@@ -60,5 +60,5 @@ class BossHPDetector:
 with open('boss_hp_detector.py', 'w') as f:
     f.write(code)
 
-print("Generated: boss_hp_detector.py")
-print("Done!")
+print("Generate: boss_hp_detector.py")
+print("Done")

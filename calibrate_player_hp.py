@@ -3,8 +3,8 @@ import numpy as np
 from mss import mss
 import time
 
-# Capture screenshot after countdown
-print("3 seconds until screenshot...")
+# Screenshot
+print("# Screenshot after 3 sec...")
 for i in range(3, 0, -1):
     print(f"{i}...")
     time.sleep(1)
@@ -14,23 +14,23 @@ with mss() as sct:
     screenshot = np.array(sct.grab(monitor))
     screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2BGR)
 
-print("Screenshot captured")
+print("Screenshot Done")
 cv2.imwrite('screenshot.png', screenshot)
 
-# Select the player HP area
-print("\nSelect the player HP area (top-left), press SPACE to confirm")
+# Select the region of health points
+print("\nSelect the player's health region and press SPACE to confirm.")
 x, y, w, h = cv2.selectROI("Player HP Area", screenshot, True, False)
 cv2.destroyAllWindows()
 
 if w == 0 or h == 0:
-    print("No selection made, exiting")
+    print("No selection made, exit")
     exit()
 
 hp_region = screenshot[y:y+h, x:x+w]
 
-# Display the area for clicking
-print("\nNow click the center of each mask in the HP bar.")
-print("Press any key when done")
+# Region allowed click
+print("\nNow click the center of each mask")
+print("Press any key after clicking")
 
 clicks = []
 display = hp_region.copy()
@@ -51,7 +51,7 @@ cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 if len(clicks) == 0:
-    print("No clicks detected, exiting")
+    print("Exit without clicking")
     exit()
 
 y_coord = y + h // 2
@@ -59,7 +59,7 @@ x_coords = sorted(clicks)
 
 print(f"\nY={y_coord}, X={x_coords}")
 
-# 生成检测器
+# Generate detector
 code = f'''import numpy as np
 
 class PlayerHPDetector:
@@ -81,5 +81,5 @@ class PlayerHPDetector:
 with open('player_hp_detector.py', 'w') as f:
     f.write(code)
 
-print("Generated: player_hp_detector.py")
-print("Done!")
+print("Generate: player_hp_detector.py")
+print("Done")

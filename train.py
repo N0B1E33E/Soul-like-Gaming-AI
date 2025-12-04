@@ -1,9 +1,5 @@
 """
-Silksong PPO Training script
-Based on your existing PPO implementation, adapted for the new environment
-
-Press Ctrl+C to safely stop and save all data.
-
+Silksong PPO Training
 """
 
 import os
@@ -23,13 +19,11 @@ from datetime import datetime
 from silksong_env import SilksongEnv
 
 
-# ============================================
-# Safety Stop Handling
-# ============================================
+# Safely stop
 
 class TrainingManager:
-    """Manages training state, supports safe stopping"""
-
+    """Manage training status and support safely stop"""
+    
     def __init__(self):
         self.should_stop = False
         self.network = None
@@ -37,20 +31,18 @@ class TrainingManager:
         self.logger = None
         self.writer = None
         self.run_name = None
-        
-        # 注册信号处理
         signal.signal(signal.SIGINT, self._signal_handler)
     
     def _signal_handler(self, sig, frame):
-        """Handle Ctrl+C"""
+        """Process Ctrl+C"""
         print("\n\n" + "="*60)
-        print(" Received stop signal (Ctrl+C)")
+        print(" Stop signal received (Ctrl+C)")
         print("="*60)
-        print("Safely saving all data...")
+        print("Saving all datas...")
         self.should_stop = True
     
     def save_checkpoint(self, update, force=False):
-        """Save checkpoint"""
+        """Save checkpoints"""
         if self.network is None or self.agent is None:
             return
         
@@ -68,18 +60,18 @@ class TrainingManager:
             'run_name': self.run_name,
         }, ckpt_path)
         
-        print(f" Model saved: {ckpt_path}")
+        print(f"Model saved: {ckpt_path}")
         return ckpt_path
     
     def cleanup(self, update):
-        """Cleaning and saving"""
+        """Clean and save"""
         print("\nSaving...")
         
-        # Save model
+        # Save Model
         if self.network and self.agent:
             self.save_checkpoint(update, force=True)
         
-        # Save logs
+        # Save log
         if self.logger:
             self.logger.save()
         
@@ -87,27 +79,24 @@ class TrainingManager:
         if self.writer:
             self.writer.close()
         
-        print(" All data saved")
+        print("All data saved")
         print("="*60)
 
 
-# Global training manager
+# Training Manager
 training_manager = TrainingManager()
 
-
-# ============================================
-# Episode Logger (Optional)
-# ============================================
+# Episode Logger
 
 class EpisodeLogger:
-    """Logs detailed episode data"""
+    """Record detailed Episode data"""
     
     def __init__(self, save_path='training_log.json'):
         self.save_path = save_path
         self.episodes = []
     
     def log_episode(self, episode_data):
-        """Log an episode"""
+        """Record an Episode"""
         self.episodes.append(episode_data)
     
     def save(self):
@@ -119,18 +108,16 @@ class EpisodeLogger:
         }
         with open(self.save_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
-        print(f"✓ Log saved: {self.save_path}")
+        print(f"Log saved: {self.save_path}")
 
 
-# ============================================
-# Part 1: Neural Network
-# ============================================
+# Neural Networks
 
 class CNNEncoder(nn.Module):
     """
-    CNN Feature Extractor (3 convolutional layers)
+    CNN Feature extractor (3-layer convolution)
     Input: (batch, channels, 128, 128)
-    Output: (batch, 9216) Flattened features
+    Output: (batch, 9216)
     """
     def __init__(self, in_channels=4):
         super().__init__()
@@ -143,7 +130,7 @@ class CNNEncoder(nn.Module):
             nn.ReLU(),
             nn.Flatten()
         )
-        # Output dimension: 64 × 12 × 12 = 9216
+        # Output Dimension：64 × 12 × 12 = 9216
         self.output_dim = 64 * 12 * 12
     
     def forward(self, x):
@@ -152,8 +139,8 @@ class CNNEncoder(nn.Module):
 
 class ActorCriticNetwork(nn.Module):
     """
-    Actor-Critic 网络
-    CNN → LSTM → Actor/Critic 双头
+    Actor-Critic Network
+    CNN → LSTM → Actor/Critic
     """
     def __init__(self, obs_channels=4, n_actions=10, lstm_hidden=512):
         super().__init__()
@@ -161,17 +148,17 @@ class ActorCriticNetwork(nn.Module):
         # CNN Encoder
         self.encoder = CNNEncoder(obs_channels)
         
-        # LSTM Memory Layer
+        # LSTM Memory layer
         self.lstm = nn.LSTM(
             input_size=self.encoder.output_dim,
             hidden_size=lstm_hidden,
             batch_first=True
         )
         
-        # Actor head (outputs action probabilities)
+        # Actor Head
         self.actor = nn.Linear(lstm_hidden, n_actions)
         
-        # Critic head (outputs state value)
+        # Critic Head
         self.critic = nn.Linear(lstm_hidden, 1)
         
         self.lstm_hidden = lstm_hidden
@@ -179,41 +166,39 @@ class ActorCriticNetwork(nn.Module):
     def forward(self, x, hidden_state=None):
         """
         x: (batch, time, channels, H, W)
-        hidden_state: LSTM hidden state
+        hidden_state: LSTM 
         """
         batch_size, time_steps = x.shape[:2]
         
-        # CNN feature extraction
+        # CNN Feature extraction
         # (B, T, C, H, W) -> (B*T, C, H, W)
         x_flat = x.view(batch_size * time_steps, *x.shape[2:])
         features = self.encoder(x_flat)
         
-        # Restore time dimension
+        # Recovery time dimension
         # (B*T, feature_dim) -> (B, T, feature_dim)
         features = features.view(batch_size, time_steps, -1)
         
         # LSTM
         lstm_out, new_hidden = self.lstm(features, hidden_state)
         
-        # Actor-Critic heads
+        # Actor-Critic Head
         action_logits = self.actor(lstm_out)  # (B, T, n_actions)
         state_value = self.critic(lstm_out)   # (B, T, 1)
         
         return action_logits, state_value, new_hidden
 
 
-# ============================================
-# Part 2: Experience Buffer
-# ============================================
+# Experience Cache
 
 class RolloutBuffer:
-    """Stores experiences for one rollout"""
+    """Storing a Rollout experience"""
     
     def __init__(self, capacity, obs_shape, device):
         self.capacity = capacity
         self.device = device
         
-        # Storage
+        # Storage space
         self.observations = torch.zeros(capacity, *obs_shape, device=device)
         self.actions = torch.zeros(capacity, dtype=torch.long, device=device)
         self.rewards = torch.zeros(capacity, device=device)
@@ -224,7 +209,7 @@ class RolloutBuffer:
         self.ptr = 0
     
     def store(self, obs, action, reward, done, log_prob, value):
-        """Store one step of experience"""
+        """Storage experience"""
         idx = self.ptr % self.capacity
         
         self.observations[idx] = obs
@@ -238,11 +223,11 @@ class RolloutBuffer:
     
     def compute_returns_and_advantages(self, last_value, gamma=0.99, lam=0.95):
         """
-        Compute GAE (Generalized Advantage Estimation)
+        Calculate Generalized Advantage Estimation
         
-        Returns:
-            advantages: Advantages
-            returns: Returns
+        Return:
+            advantages
+            returns
         """
         advantages = torch.zeros_like(self.rewards)
         returns = torch.zeros_like(self.rewards)
@@ -250,7 +235,7 @@ class RolloutBuffer:
         gae = 0
         next_value = last_value
         
-        # Compute from the end to the beginning
+        # Calculate from back to front
         for t in reversed(range(self.capacity)):
             mask = 1.0 - self.dones[t]
             
@@ -266,19 +251,17 @@ class RolloutBuffer:
         # Returns
         returns = advantages + self.values
         
-        # Standardize advantages
+        # Standardization advantages
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         
         return advantages, returns
 
 
-# ============================================
-# Part 3: PPO Agent
-# ============================================
+# PPO Agent
 
 class PPOAgent:
     """
-    PPO algorithm implementation
+    PPO Algorithm
     """
     
     def __init__(self, network, lr=2.5e-4, clip_ratio=0.2, 
@@ -294,15 +277,15 @@ class PPOAgent:
     
     def update(self, buffer, last_value, n_epochs=4, batch_size=256):
         """
-        Update the network
+        Update network
         
         Parameters:
             buffer: RolloutBuffer
-            last_value: Last state's value
-            n_epochs: Number of update epochs
-            batch_size: Batch size
+            last_value
+            n_epochs
+            batch_size
         """
-        # Compute advantages and returns
+        # CompuCatational advantages and returns
         advantages, returns = buffer.compute_returns_and_advantages(last_value)
         
         # Prepare data
@@ -312,46 +295,46 @@ class PPOAgent:
         
         total_samples = buffer.capacity
         
-        # Multiple update epochs
+        # Multiple updates
         for epoch in range(n_epochs):
-            # Random shuffle
+            # Randomly shuffle
             indices = torch.randperm(total_samples, device=buffer.device)
             
-            # Batch update
+            # Updated in batches
             for start in range(0, total_samples, batch_size):
                 end = start + batch_size
                 batch_idx = indices[start:end]
                 
                 # Extract batch
-                batch_obs = obs[batch_idx].unsqueeze(1)  # Add time dimension
+                batch_obs = obs[batch_idx].unsqueeze(1)
                 batch_actions = actions[batch_idx]
                 batch_old_logp = old_log_probs[batch_idx]
                 batch_adv = advantages[batch_idx]
                 batch_ret = returns[batch_idx]
                 
-                # Forward pass
+                # Forward propagation
                 logits, values, _ = self.network(batch_obs)
-                logits = logits.squeeze(1)  # Remove time dimension
+                logits = logits.squeeze(1)
                 values = values.squeeze(1).squeeze(-1)
                 
-                # Compute new log prob
+                # Calculate the new log prob
                 dist = Categorical(logits=logits)
                 new_log_probs = dist.log_prob(batch_actions)
                 
                 # PPO Loss
-                # 1. Policy loss (with clip)
+                # Policy loss
                 ratio = (new_log_probs - batch_old_logp).exp()
                 surr1 = ratio * batch_adv
                 surr2 = torch.clamp(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio) * batch_adv
                 policy_loss = -torch.min(surr1, surr2).mean()
                 
-                # 2. Value loss
+                # Value loss
                 value_loss = F.mse_loss(values, batch_ret)
                 
-                # 3. Entropy bonus (encourage exploration)
+                # Entropy bonus
                 entropy = dist.entropy().mean()
                 
-                # Total loss
+                # Loss
                 loss = policy_loss + self.value_coef * value_loss - self.entropy_coef * entropy
                 
                 # Backpropagation
@@ -367,17 +350,14 @@ class PPOAgent:
         }
 
 
-# ============================================
-# Part 4: Training Functions
-# ============================================
+# Training Function
 
 def find_latest_checkpoint(checkpoint_dir='checkpoints'):
     """
     Automatically find the latest checkpoint
     
-    Returns:
-        checkpoint_path: Path to the latest checkpoint
-        or None (if none found)
+    Return:
+        checkpoint_path or None
     """
     if not os.path.exists(checkpoint_dir):
         return None
@@ -388,7 +368,7 @@ def find_latest_checkpoint(checkpoint_dir='checkpoints'):
     if not files:
         return None
     
-    # Sort by modification time, return the latest
+    # Sort by modification time and return the latest
     files_with_time = [(f, os.path.getmtime(os.path.join(checkpoint_dir, f))) 
                        for f in files]
     files_with_time.sort(key=lambda x: x[1], reverse=True)
@@ -401,46 +381,37 @@ def find_latest_checkpoint(checkpoint_dir='checkpoints'):
 
 def load_checkpoint(network, agent, checkpoint_path):
     """
-    Load checkpoint
+    Load checkpoints
     
-    Returns:
-        start_update: Which update to continue from
+    Return:
+        start_update
     """
-    print(f"\nLoading model: {checkpoint_path}")
+    print(f"\nLoad Model: {checkpoint_path}")
     
     checkpoint = torch.load(checkpoint_path, map_location='cpu')
     
-    # Load network parameters
+    # Loading network parameters
     network.load_state_dict(checkpoint['network'])
     
-    # Load optimizer state
+    # Load optimizer status
     if 'optimizer' in checkpoint:
         agent.optimizer.load_state_dict(checkpoint['optimizer'])
     
-    # Get last progress
+    # Get the previous progress
     start_update = checkpoint.get('update', 0)
     
-    print(f" Model loaded successfully")
-    print(f"   Last trained update: {start_update}")
+    print(f"Model has been loaded")
+    print(f"Update {start_update}")
     
     return start_update
 
 
 def warmup_exploration(env, n_episodes=50):
     """
-    Warm-up exploration phase (inspired by seermer)
-    
-    Randomly play several episodes to let the agent experience various situations.
-    No training, just "experiencing" the game.
+    Pre-exploration phase
     """
     print("\n" + "="*60)
-    print(f" Warm-up phase: {n_episodes} Episodes")
-    print("="*60)
-    print("Random actions, no training, just letting the AI experience the game")
-    print("This helps the AI learn:")
-    print("  - Effects of various actions")
-    print("  - Boss's attack patterns")
-    print("  - Situations that lead to death")
+    print(f" Pre-exploration phase: {n_episodes} Episodes")
     print("="*60)
     
     for ep in range(n_episodes):
@@ -449,15 +420,15 @@ def warmup_exploration(env, n_episodes=50):
         steps = 0
         
         while not done and steps < 100:
-            # 随机动作
+            # Random Actions
             action = np.random.randint(0, 10)
             obs, reward, done, info = env.step(action)
             steps += 1
         
         if (ep + 1) % 10 == 0:
-            print(f"  Completed {ep+1}/{n_episodes} Episodes")
+            print(f"Done {ep+1}/{n_episodes} Episodes")
     
-    print(f" Warm-up completed! Experienced {n_episodes} Episodes\n")
+    print(f" Pre-exploration complete {n_episodes}\n")
 
 
 def train(total_episodes=1000, steps_per_rollout=256, device='cuda', 
@@ -465,65 +436,65 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
     """
     Main training function
     
-    Args:
-        total_episodes: Total training episodes
-        steps_per_rollout: How many steps of experience to collect each rollout
+    Parameter:
+        total_episodes: Total number of training rounds
+        steps_per_rollout: How many steps of experience to collect each time
         device: 'cuda' or 'cpu'
-        auto_resume: Whether to automatically load the previous model
-        warmup_episodes: Number of warm-up exploration episodes
+        auto_resume: Should previous models be loaded automatically
+        warmup_episodes: Number of pre-explored Episodes
     """
-    # Device
+    # Equipment
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {device}")
+    print(f"Use equipment: {device}")
     
-    # Create environment
+    # Creating an environment
     env = SilksongEnv(max_player_hp=6, boss_hp_max=800, frame_stack=4)
     
-    # Get observation shape
+    # Get the observed shape
     obs_sample = env.reset()
     obs_shape = obs_sample.shape  # (4, 128, 128)
     
-    print(f"Observation shape: {obs_shape}")
+    print(f"Observed shape: {obs_shape}")
     network = ActorCriticNetwork(
         obs_channels=4,     # frame stack
         n_actions=10,       # Number of actions
         lstm_hidden=512     # LSTM size
     ).to(device)
     
-    # Create Agent (aggressive parameters - fast learning)
+    # Creating an Agent
     agent = PPOAgent(
         network=network,
-        lr=5e-4,               # Learning rate doubled (fast learning)
+        lr=5e-4,
         clip_ratio=0.2,
         value_coef=0.5,
-        entropy_coef=0.1       # Encourage exploration
+        entropy_coef=0.1
     )
     
-    # Automatically resume previous training
+    # Resume the last training session.
     start_update = 0
     if auto_resume:
         latest_ckpt = find_latest_checkpoint()
         if latest_ckpt:
             print("\n" + "="*60)
-            print(f"Found previous model: {latest_ckpt}")
+            print(f"Discover the previous model: {latest_ckpt}")
             print("="*60)
             
-            choice = input("\nContinue training from last time? (y/n): ").strip().lower()
+            choice = input("\nContinue with last training session(y/n): ").strip().lower()
             
             if choice == 'y':
                 start_update = load_checkpoint(network, agent, latest_ckpt)
-                print(f"Continuing training from Update {start_update}")
+                print(f"From update {start_update} Continue training")
             else:
-                print("Starting new training from scratch")
+                print("Starting over")
         else:
-            print("\nNo previous model found, starting from scratch")
+            print("\No previous model found, starting over")
     
     # TensorBoard
     run_name = time.strftime("run_%Y%m%d_%H%M%S")
     writer = SummaryWriter(f'runs/{run_name}')
     print(f"TensorBoard: runs/{run_name}")
     
-    # Episode Logger (detailed data)
+    # Episode Logger
     episode_logger = EpisodeLogger(f'logs/training_{run_name}.json')
     os.makedirs('logs', exist_ok=True)
     
@@ -537,11 +508,11 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
     # Training loop
     print("\n" + "="*60)
     if start_update > 0:
-        print(f"Continuing training from Update {start_update}")
+        print(f"Continue training from Update {start_update}")
     else:
-        print("Starting training from scratch")
+        print("Start training")
         
-        # Warm-up exploration (only when starting from scratch)
+        # Pre-exploration
         if warmup_episodes > 0:
             warmup_exploration(env, warmup_episodes)
     
@@ -558,9 +529,9 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
     global_step = 0
     
     for update in range(start_update, total_episodes):
-        # Check if should stop
+        # Check if it should be stopped
         if training_manager.should_stop:
-            print("\nReceived stop signal, saving...")
+            print("\Stop signal received, saving in progress...")
             training_manager.cleanup(update)
             return
         
@@ -575,7 +546,7 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
         for t in range(steps_per_rollout):
             # Check stop signal
             if training_manager.should_stop:
-                print("\nCollection interrupted, saving current data...")
+                print("\nData collection interrupted; save current data...")
                 break
             
             with torch.no_grad():
@@ -584,7 +555,7 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
                 logits = logits.squeeze(0).squeeze(0)
                 value = value.squeeze(0).squeeze(0)
                 
-                # Sample action
+                # Sampling action
                 dist = Categorical(logits=logits)
                 action = dist.sample()
                 log_prob = dist.log_prob(action)
@@ -592,7 +563,7 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
             # Execute action
             next_obs, reward, done, info = env.step(action.item())
             
-            # Store experience  
+            # Storage experience
             buffer.store(
                 obs_tensor.squeeze(0),
                 action,
@@ -602,7 +573,7 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
                 value
             )
             
-            # Update state
+            # Update status
             obs = next_obs
             obs_tensor = torch.tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
             
@@ -610,20 +581,20 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
             episode_steps += 1
             global_step += 1
             
-            # Episode ends
+            # Episode ended
             if done:
-                # Log to TensorBoard
+                # Recorded to TensorBoard
                 writer.add_scalar('train/episode_reward', episode_reward, episode_num)
                 writer.add_scalar('train/episode_steps', episode_steps, episode_num)
                 
-                # Log result
+                # Record Results
                 result = info.get('result', 'unknown')
                 if result == 'win':
                     writer.add_scalar('train/win', 1, episode_num)
                 else:
                     writer.add_scalar('train/win', 0, episode_num)
                 
-                # Log health information
+                # Record health points
                 final_player_hp = info.get('player_hp', 0)
                 final_boss_hp = info.get('boss_hp', 800)
                 writer.add_scalar('train/final_player_hp', final_player_hp, episode_num)
@@ -637,7 +608,7 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
                       f"Player={final_player_hp}/6, "
                       f"Boss={final_boss_hp:.0f}/800")
                 
-                # Log detailed data to JSON
+                # Record detailed data to JSON
                 episode_logger.log_episode({
                     'episode': episode_num,
                     'steps': episode_steps,
@@ -652,11 +623,11 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
                     'update': update
                 })
                 
-                # Save logs every 50 episodes
+                # Logs are saved every 50 Episodes
                 if episode_num % 50 == 0 and episode_num > 0:
                     episode_logger.save()
                 
-                # Reset for next episode
+                # Reset
                 episode_num += 1
                 episode_reward = 0
                 episode_steps = 0
@@ -665,27 +636,27 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
                 obs_tensor = torch.tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
                 hidden_state = None
         
-        # Check if collection was interrupted
+        # Check if the collection was interrupted
         if training_manager.should_stop:
             training_manager.cleanup(update)
             return
         
-        # Calculate value for the last step
+        # Calculate the value in the last step
         with torch.no_grad():
             _, last_value, _ = network(obs_tensor.unsqueeze(1), hidden_state)
             last_value = last_value.squeeze()
         
-        # Update network
+        # Update networks
         losses = agent.update(buffer, last_value, n_epochs=4, batch_size=256)
         
-        # Log training metrics
+        # Record training metrics
         writer.add_scalar('train/policy_loss', losses['policy_loss'], update)
         writer.add_scalar('train/value_loss', losses['value_loss'], update)
         writer.add_scalar('train/entropy', losses['entropy'], update)
         
-        # Log statistics every 10 updates
+        # Record every 10 updates
         if (update + 1) % 10 == 0 and len(episode_logger.episodes) > 0:
-            recent_episodes = episode_logger.episodes[-50:]  # Last 50 episodes
+            recent_episodes = episode_logger.episodes[-50:]
             if recent_episodes:
                 avg_steps = np.mean([ep['steps'] for ep in recent_episodes])
                 avg_reward = np.mean([ep['reward'] for ep in recent_episodes])
@@ -704,7 +675,7 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
             print(f"  Value Loss: {losses['value_loss']:.4f}")
             print(f"  Entropy: {losses['entropy']:.4f}\n")
         
-        # Save model (every 20 updates)
+        # Save model (Each 20 Updates）
         if (update + 1) % 20 == 0:
             os.makedirs('checkpoints', exist_ok=True)
             ckpt_path = f'checkpoints/{run_name}_u{update+1}.pt'
@@ -713,64 +684,60 @@ def train(total_episodes=1000, steps_per_rollout=256, device='cuda',
                 'optimizer': agent.optimizer.state_dict(),
                 'update': update + 1,
             }, ckpt_path)
-            print(f"✓ Saved model: {ckpt_path}")
+            print(f"Save the model: {ckpt_path}")
     
-    # Normal completion, save data
-    print("\nTraining complete, saving...")
+    # Save data
+    print("\nSaving in progress...")
     training_manager.cleanup(total_episodes)
     
     writer.close()
     env.close()
     
-    print("\nTraining complete!")
+    print("\n Training complete")
 
-
-# ============================================
-# Main program
-# ============================================
-
+# Main Function
 if __name__ == '__main__':
     print("="*60)
-    print("Silksong PPO Training - Aggressive Version")
+    print("Silksong PPO Training")
     print("="*60)
     print("\nConfiguration:")
-    print("  Environment: SilksongEnv")
+    print("  Env: SilksongEnv")
     print("  Network: CNN-LSTM + Actor-Critic")
     print("  Algorithm: PPO")
-    print("  Observation: 128×128 (more information)")
-    print("  Number of actions: 10")
+    print("  Observe: 128x128")
+    print("  Action numbers: 10")
     print("  Frame stack: 4")
-    print("\nTraining parameters (Aggressive - Fast Learning):")
-    print("  Learning rate: 5e-4 (doubled)")
-    print("  Entropy: 0.1 (More exploration)")
-    print("  Hit reward: 2.0 (Added to encourage damage)")
-    print("  Increase punishment: 0.5 (Reduce fear)")
-    print("  Warmup: 50 Episodes")
+    print("\nTraining parameters:")
+    print("  Learning rate: 5e-4")
+    print("  Entropy: 0.1")
+    print("  Hit reward: 2.0")
+    print("  Damage punishment: 0.5")
+    print("  Pre-exploration: 50 Episodes")
     print("="*60)
-    print("\n Important notes:")
-    print("  - Ctrl+C can safely stop training at any time")
-    print("  - Models and logs are automatically saved on stop")
-    print("  - Data is saved in checkpoints/ and logs/")
+    print("\n Note:")
+    print("  - Press Ctrl+C to stop the training")
+    print("  - The model and logs will be automatically saved when stopped")
+    print("  - Data stored in checkpoints/ and logs/")
     print("="*60)
     
-    input("\nMake sure the game is in the battle position, press Enter to start training...")
+    input("\nMake sure in the combat position, then press Enter to begin training....")
     
-    # Start training
+    # Start train
     try:
         train(
             total_episodes=100,      # 100 Updates
-            steps_per_rollout=128,   # 128 steps (reduce OCR calls)
+            steps_per_rollout=128,   # 128 steps
             device='cpu',            # Use CPU
-            auto_resume=True,        # Auto resume previous training
-            warmup_episodes=50       # Warmup 50 Episodes
+            auto_resume=True,        # Automatically continue from the last training
+            warmup_episodes=50       # Pre-exploration 50 Episodes
         )
         
-        # Estimated time: about 4-5 hours
+    # Print status
     except KeyboardInterrupt:
-        print("\n\nTraining interrupted by user")
+        print("\nTraining interrupted by user")
     except Exception as e:
-        print(f"\n\nTraining error: {e}")
+        print(f"\nTraining error {e}")
         import traceback
         traceback.print_exc()
     
-    print("\nProgram exited.")
+    print("\nTerminate")
