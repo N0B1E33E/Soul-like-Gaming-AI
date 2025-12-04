@@ -3,8 +3,8 @@ import numpy as np
 from mss import mss
 import time
 
-# 截图
-print("3秒后截图...")
+# Screenshot
+print("Screenshot after 3 sec...")
 for i in range(3, 0, -1):
     print(f"{i}...")
     time.sleep(1)
@@ -14,22 +14,22 @@ with mss() as sct:
     screenshot = np.array(sct.grab(monitor))
     screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2BGR)
 
-print("截图完成")
+print("Screenshot Done")
 cv2.imwrite('screenshot.png', screenshot)
 
-# 框选
-print("\n框选 Boss HP 数字，按 SPACE 确认")
+# Select region
+print("\nSelect the Boss HP number and press SPACE to confirm")
 x, y, w, h = cv2.selectROI("Boss HP", screenshot, True, False)
 cv2.destroyAllWindows()
 
 if w == 0 or h == 0:
-    print("未选择，退出")
+    print("No selection made, exit")
     exit()
 
 x1, y1, x2, y2 = x, y, x+w, y+h
-print(f"区域: ({x1},{y1}) -> ({x2},{y2})")
+print(f"Region: ({x1},{y1}) -> ({x2},{y2})")
 
-# 生成检测器
+# Generate detector
 code = f'''import cv2
 import numpy as np
 import pytesseract
@@ -60,5 +60,5 @@ class BossHPDetector:
 with open('boss_hp_detector.py', 'w') as f:
     f.write(code)
 
-print("生成: boss_hp_detector.py")
-print("完成!")
+print("Generate: boss_hp_detector.py")
+print("Done")
