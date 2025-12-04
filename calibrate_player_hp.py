@@ -3,8 +3,8 @@ import numpy as np
 from mss import mss
 import time
 
-# 截图
-print("3秒后截图...")
+# Capture screenshot after countdown
+print("3 seconds until screenshot...")
 for i in range(3, 0, -1):
     print(f"{i}...")
     time.sleep(1)
@@ -14,23 +14,23 @@ with mss() as sct:
     screenshot = np.array(sct.grab(monitor))
     screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2BGR)
 
-print("截图完成")
+print("Screenshot captured")
 cv2.imwrite('screenshot.png', screenshot)
 
-# 框选血量区域
-print("\n框选玩家血量区域（左上角），按 SPACE 确认")
+# Select the player HP area
+print("\nSelect the player HP area (top-left), press SPACE to confirm")
 x, y, w, h = cv2.selectROI("Player HP Area", screenshot, True, False)
 cv2.destroyAllWindows()
 
 if w == 0 or h == 0:
-    print("未选择，退出")
+    print("No selection made, exiting")
     exit()
 
 hp_region = screenshot[y:y+h, x:x+w]
 
-# 显示区域让你点击
-print("\n现在点击每个面具的中心")
-print("点完后按任意键")
+# Display the area for clicking
+print("\nNow click the center of each mask in the HP bar.")
+print("Press any key when done")
 
 clicks = []
 display = hp_region.copy()
@@ -42,7 +42,7 @@ def mouse_callback(event, mx, my, flags, param):
         cv2.putText(display, str(len(clicks)), (mx-5, my-10),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         cv2.imshow("Click masks", display)
-        print(f"面具 {len(clicks)}: X={mx+x}")
+        print(f"Mask {len(clicks)}: X={mx+x}")
 
 cv2.namedWindow("Click masks")
 cv2.setMouseCallback("Click masks", mouse_callback)
@@ -51,7 +51,7 @@ cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 if len(clicks) == 0:
-    print("未点击，退出")
+    print("No clicks detected, exiting")
     exit()
 
 y_coord = y + h // 2
@@ -81,5 +81,5 @@ class PlayerHPDetector:
 with open('player_hp_detector.py', 'w') as f:
     f.write(code)
 
-print("生成: player_hp_detector.py")
-print("完成!")
+print("Generated: player_hp_detector.py")
+print("Done!")
