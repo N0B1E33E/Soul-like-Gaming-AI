@@ -1,8 +1,5 @@
 """
 Silksong PPO Training
-基于你们原有的 PPO 实现，适配新环境
-
-按 Ctrl+C 可以安全停止并保存所有数据
 """
 
 import os
